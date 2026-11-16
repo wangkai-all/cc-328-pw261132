@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>推荐反馈样本与评估</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header>
+  <h1>推荐反馈 · 样本与评估</h1>
+  <div id="overview" class="overview"></div>
+</header>
+
+<nav class="tabs">
+  <button data-tab="sample" class="active">样本来源</button>
+  <button data-tab="windows">切窗口（冻结 vs 滚动）</button>
+  <button data-tab="consent">许可撤回与恢复</button>
+  <button data-tab="jobs">任务（回补/重建/评估）</button>
+  <button data-tab="eval">指标比较</button>
+  <button data-tab="audit">处置审计</button>
+</nav>
+
+<main>
+  <!-- 样本来源 -->
+  <section id="tab-sample" class="tab active">
+    <h2>一条样本的完整来源</h2>
+    <p class="hint">展示 → 点击 → 购买 → 取消/退货 的事件链、锚点时间、特征截止（恒等于锚点，防泄漏）、标签版本历史。
+      退款后样本标签翻为负例，绝不再当正例。</p>
+    <div class="row">
+      <label>样本 ID <input id="sample-id-input" placeholder="smp_xxx"></label>
+      <button id="btn-load-sample">查看来源</button>
+      <button id="btn-refresh-samples">刷新样本列表</button>
+    </div>
+    <div id="sample-list" class="cards"></div>
+    <div id="sample-detail" class="detail"></div>
+  </section>
+
+  <!-- 切窗口 -->
+  <section id="tab-windows" class="tab">
+    <h2>切观察窗：冻结观察窗 vs 滚动成熟标签</h2>
+    <div class="explain">
+      <p><b>冻结观察窗（frozen）</b>：只收 anchor+14d 已成熟的样本——标签完整、无 pending 噪声，
+        但最近 14 天的新曝光无法入样，<b>牺牲新鲜度换完整性</b>。</p>
+      <p><b>滚动成熟标签（rolling）</b>：窗内曝光立即入样，未成熟者先给临时标签（pending），
+        由回补任务在成熟或退款到达后翻标签——<b>新鲜度高，回补完成前标签不完整</b>。</p>
+    </div>
+    <div class="row wrap">
+      <label>窗口名称 <input id="win-name" placeholder="如 11月上旬"></label>
+      <label>开始 <input id="win-start" type="datetime-local"></label>
+      <label>结束 <input id="win-end" type="datetime-local"></label>
+      <label>成熟窗(天) <input id="win-horizon" type="number" value="14" style="width:6em"></label>
+    </div>
+    <div class="row">
+      <button id="btn-create-pair">同时创建冻结+滚动窗口（同输入，便于比较）</button>
+      <button id="btn-refresh-datasets">刷新</button>
+    </div>
+    <div id="dataset-list" class="cards"></div>
+  </section>
+
+  <!-- 撤回 -->
+  <section id="tab-consent" class="tab">
+    <h2>个性化许可撤回 / 恢复</h2>
+    <p class="hint">撤回后：原始事件硬删除（先归档可追溯）→ 样本所有版本打墓碑 → 相关缓存失效 →
+      运行中任务中止。恢复会重新写授权版本并留痕，旧任务不会因此复活。</p>
+    <div class="row">
+      <label>用户 ID <input id="consent-user" placeholder="如 u_withdraw"></label>
+      <label>原因 <input id="consent-reason" placeholder="用户在设置页关闭个性化"></label>
+      <button id="btn-withdraw" class="danger">撤回许可</button>
+      <button id="btn-restore">恢复许可</button>
+      <button id="btn-refresh-consent">刷新</button>
+    </div>
+    <div id="consent-list" class="cards"></div>
+    <h3>缓存登记（撤回时按用户失效）</h3>
+    <div id="cache-list" class="cards"></div>
+  </section>
+
+  <!-- 任务 -->
+  <section id="tab-jobs" class="tab">
+    <h2>并行任务：标签回补 / 样本重建 / 窗口构建 / 评估</h2>
+    <p class="hint">每个任务创建时固定授权版本与输入哈希；写库前复检撤回状态，
+      被撤回的任务保持 aborted，不会复活任何撤回数据。</p>
+    <div class="row">
+      <button id="btn-build-all">首次全量构建样本</button>
+      <button id="btn-backfill">入队标签回补（捕捉迟来退款/成熟翻转）</button>
+      <button id="btn-rebuild">入队样本重建（重算特征+标签）</button>
+      <button id="btn-refresh-jobs">刷新任务</button>
+    </div>
+    <div id="job-list" class="cards"></div>
+  </section>
+
+  <!-- 评估比较 -->
+  <section id="tab-eval" class="tab">
+    <h2>评估与指标比较</h2>
+    <p class="hint">时间序 80/20 切分，纯 Python 逻辑回归基线。评估产物固定
+      input_hash / consent_version / code_version / feature_version，墓碑样本跳过并计数。</p>
+    <div id="eval-list" class="cards"></div>
+  </section>
+
+  <!-- 审计 -->
+  <section id="tab-audit" class="tab">
+    <h2>处置可追溯：日志（只追加）与归档</h2>
+    <div class="row">
+      <button id="btn-refresh-audit">刷新</button>
+    </div>
+    <h3>处置日志 disposal_log</h3>
+    <div id="disposal-log" class="cards"></div>
+    <h3>归档 disposal_archive（演示级恢复来源）</h3>
+    <div id="archive-list" class="cards"></div>
+  </section>
+</main>
+
+<div id="toast"></div>
+<script src="/app.js"></script>
+</body>
+</html>
